@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title></title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    #app {
+      width: 600px;
+      margin: 10px auto;
+    }
+
+    .tb {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    .tb th {
+      background-color: #0094ff;
+      color: white;
+    }
+
+    .tb td,
+    .tb th {
+      padding: 5px;
+      border: 1px solid black;
+      text-align: center;
+    }
+
+    .add {
+      padding: 5px;
+      border: 1px solid black;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="add">
+      品牌名称:
+      <input type="text" v-model.trim="brandName">
+      <input type="button" value="添加" @click.prevent="handleAdd">
+    </div>
+
+    <div class="add">
+      品牌名称:
+      <input type="text" placeholder="请输入搜索条件" v-model="searchKey">
+    </div>
+
+    <div>
+      <table class="tb">
+        <tr>
+          <th>编号</th>
+          <th>品牌名称</th>
+          <th>创立时间</th>
+          <th>操作</th>
+        </tr>
+        <tr v-for="(item,index) in list":key="item.id">
+          <td>{{ index+1 }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.date | fmDate("YYYY-MM-DD HH:mm:ss") }}</td>
+          <td>
+            <a href="#" @click.prevent="handleDelete(item.id)">删除</a>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="4" v-if="list.length==0">没有品牌数据</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  <script src="axios.js"></script>
+  <script src="js/vue.js"></script>
+  <script src="moment.js"></script>
+  <script>
+    Vue.filter('fmDate',(value,fmtStr) =>{
+      return moment(value).format(fmtStr);
+    });
+ var vm = new Vue({
+   el:"#app",
+   mounted(){
+     this.loadList();
+   },
+   data:{
+      list:[],
+      brandName:"",
+      searchKey:''
+   },
+
+  //  <!-- 给添加文本框绑定数据 -->
+  //  <!-- 给添加按钮注册事件 -->
+  //  <!-- 如果添加文本框没有输入数据，则返回 -->
+  //  <!-- 通过post方式提交给服务器 -->
+  //  <!-- 判断是否添加成功，如果成功，就刷新列表，清空文本框 -->
+   methods:{
+    //  <!-- 加载列表数据 -->
+     loadList(){
+       axios.get('http://localhost:3000/brands')
+       .then((res)=>{
+          if(res.status==200){
+            this.list=res.data;
+          }
+
+       })
+       .catch((error)=>{
+          console.log(error);
+       })
+     },
+    handleAdd(){
+      if(this.brandName.length==0){
+        return;
+      }
+      axios.post("http://localhost:3000/brands",{
+        name:this.brandName,
+        date:new Date()
+      })
+      .then((res)=>{
+        if(res.status==201){
+          this.loadList();
+          this.brandName="";
+        }
+        
+        })
+        .catch((error)=>{
+          console.log(error);
+      });
+
+    },
+    handleDelete(id){
+      if(!confirm('是否要删除')){
+        return;
+      }
+      axios.delete(`http://localhost:3000/brands/${id}`)
+      .then((res)=>{
+        if(res.status===200){
+          this.loadList();
+        }else{
+          alert('删除失败');
+        }
+      })
+      .catch((error)=>{
+        console.log(error);
+      });
+    },
+
+   },
+   watch: {
+      searchKey(value1,value2){
+        axios.get('http://localhost:3000/brands',{
+          params: {
+            name_like:value1
+          }
+        })
+        .then((res)=>{
+          this.list = res.data;
+        })
+        .then((error)=>{
+          console.log(error);
+        })
+      }
+    }
+ });
+  </script>
+</body>
+</html>
